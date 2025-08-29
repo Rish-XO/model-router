@@ -3,12 +3,24 @@
     "name": "google-gemini",
     "type": "google",
     "enabled": true,
-    "endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent",
+    "endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent",
     "api_key_env": "GOOGLE_API_KEY",
     "capabilities": ["chat", "text-generation"],
     "limits": {
       "requests_per_minute": 15,
       "requests_per_day": 1500
+    }
+  },
+  "hugging-face": {
+    "name": "hugging-face",
+    "type": "huggingface",
+    "enabled": true,
+    "endpoint": "https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium",
+    "api_key_env": "HUGGINGFACE_API_TOKEN",
+    "capabilities": ["chat", "text-generation"],
+    "limits": {
+      "requests_per_minute": 30,
+      "requests_per_day": 3000
     }
   }
 }

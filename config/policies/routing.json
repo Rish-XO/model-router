@@ -1,0 +1,24 @@
+{
+  "cost-optimized": {
+    "strategy": "cost-optimized",
+    "min_uptime": 0.95,
+    "max_latency": 2000,
+    "description": "Prioritize lowest cost providers"
+  },
+  "performance-first": {
+    "strategy": "performance-first", 
+    "min_uptime": 0.90,
+    "max_latency": 500,
+    "description": "Prioritize fastest response times"
+  },
+  "balanced": {
+    "strategy": "balanced",
+    "weights": {
+      "cost": 0.3,
+      "latency": 0.4,
+      "uptime": 0.3
+    },
+    "min_uptime": 0.90,
+    "description": "Balance cost, speed, and reliability"
+  }
+}

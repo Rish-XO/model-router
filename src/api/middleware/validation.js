@@ -21,7 +21,7 @@ const validateChatCompletion = (req, res, next) => {
     return res.status(400).json({
       error: {
         message: `Invalid request: ${error.details[0].message}`,
-        type: 'invalid_request_error'
+        type: 'validation_error'
       }
     });
   }

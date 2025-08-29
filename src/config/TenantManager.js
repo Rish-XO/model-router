@@ -24,7 +24,7 @@ class TenantManager {
       for (const file of tenantFiles) {
         const tenantId = file.replace('.json', '');
         try {
-          const tenant = ConfigLoader.loadTenant(tenantId);
+          const tenant = ConfigLoader.loadTenantSync(tenantId);
           this.tenantCache.set(tenantId, tenant);
           logger.info(`Loaded tenant: ${tenantId}`, {
             providers: tenant.providers?.enabled?.length || 0,
@@ -140,7 +140,7 @@ class TenantManager {
   
   reloadTenant(tenantId) {
     try {
-      const tenant = ConfigLoader.loadTenant(tenantId);
+      const tenant = ConfigLoader.loadTenantSync(tenantId);
       this.tenantCache.set(tenantId, tenant);
       logger.info(`Reloaded tenant: ${tenantId}`);
       return tenant;

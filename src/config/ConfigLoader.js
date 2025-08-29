@@ -1,25 +1,51 @@
-const fs = require('fs');
+const fs = require('fs').promises;
 const path = require('path');
+const { logger } = require('../api/middleware/logging');
 
 class ConfigLoader {
-  static loadTenant(tenantId = 'default') {
+  static async loadTenant(tenantId = 'default') {
     try {
       const filePath = path.join(__dirname, '../../config/tenants', `${tenantId}.json`);
-      const data = fs.readFileSync(filePath, 'utf8');
+      const data = await fs.readFile(filePath, 'utf8');
       return JSON.parse(data);
     } catch (error) {
-      console.error(`Failed to load tenant config: ${tenantId}`, error.message);
+      logger.error(`Failed to load tenant config: ${tenantId}`, error);
       throw error;
     }
   }
   
-  static loadProviders() {
+  static async loadProviders() {
     try {
       const filePath = path.join(__dirname, '../../config/providers.json');
-      const data = fs.readFileSync(filePath, 'utf8');
+      const data = await fs.readFile(filePath, 'utf8');
       return JSON.parse(data);
     } catch (error) {
-      console.error('Failed to load provider config', error.message);
+      logger.error('Failed to load provider config', error);
+      throw error;
+    }
+  }
+  
+  // Sync versions for backward compatibility (cached)
+  static loadTenantSync(tenantId = 'default') {
+    const syncFs = require('fs');
+    try {
+      const filePath = path.join(__dirname, '../../config/tenants', `${tenantId}.json`);
+      const data = syncFs.readFileSync(filePath, 'utf8');
+      return JSON.parse(data);
+    } catch (error) {
+      logger.error(`Failed to load tenant config: ${tenantId}`, error);
+      throw error;
+    }
+  }
+  
+  static loadProvidersSync() {
+    const syncFs = require('fs');
+    try {
+      const filePath = path.join(__dirname, '../../config/providers.json');
+      const data = syncFs.readFileSync(filePath, 'utf8');
+      return JSON.parse(data);
+    } catch (error) {
+      logger.error('Failed to load provider config', error);
       throw error;
     }
   }

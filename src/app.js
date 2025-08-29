@@ -13,7 +13,10 @@ app.use(loggingMiddleware);
 
 // Routes
 const chatRoutes = require('./api/routes/chat');
+const metricsRoutes = require('./api/routes/metrics');
+
 app.use('/v1/chat', chatRoutes);
+app.use('/metrics', metricsRoutes);
 
 // API routes for compatibility
 app.get('/api/health', (req, res) => {

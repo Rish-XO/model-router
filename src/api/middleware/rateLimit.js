@@ -39,15 +39,24 @@ const createRateLimiter = () => {
     store: {
       // Custom store implementation for tenant-based limits
       incr: (key) => {
-        const current = rateLimitStore.get(key) || { count: 0, resetTime: Date.now() + 15 * 60 * 1000 };
+        const now = Date.now();
+        const windowMs = 15 * 60 * 1000;
+        const current = rateLimitStore.get(key) || { count: 0, resetTime: now + windowMs };
         
-        if (Date.now() > current.resetTime) {
+        if (now > current.resetTime) {
           current.count = 0;
-          current.resetTime = Date.now() + 15 * 60 * 1000;
+          current.resetTime = now + windowMs;
         }
         
         current.count++;
         rateLimitStore.set(key, current);
+        
+        // Cleanup expired entries to prevent memory leak
+        for (const [storeKey, value] of rateLimitStore.entries()) {
+          if (now > value.resetTime) {
+            rateLimitStore.delete(storeKey);
+          }
+        }
         
         return Promise.resolve({
           totalHits: current.count,

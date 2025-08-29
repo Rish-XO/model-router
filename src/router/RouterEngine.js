@@ -28,7 +28,7 @@ class RouterEngine {
   }
   
   loadProviders() {
-    const providerConfigs = ConfigLoader.loadProviders();
+    const providerConfigs = ConfigLoader.loadProvidersSync();
     
     for (const [name, config] of Object.entries(providerConfigs)) {
       if (config.enabled !== false) {
@@ -69,7 +69,7 @@ class RouterEngine {
     
     try {
       // Get tenant configuration  
-      const tenantConfig = tenant || ConfigLoader.loadTenant('default');
+      const tenantConfig = tenant || ConfigLoader.loadTenantSync('default');
       
       // Get available providers for this tenant
       const availableProviders = tenantConfig.providers?.enabled || ['google-gemini'];

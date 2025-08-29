@@ -15,9 +15,13 @@ const createRateLimiter = () => {
       }
       return 100; // Default limit
     },
-    keyGenerator: (req) => {
-      // Rate limit per tenant
-      return req.tenant?.tenant_id || req.ip;
+    keyGenerator: (req, res) => {
+      // Rate limit per tenant, use standard key generator for IP fallback
+      if (req.tenant?.tenant_id) {
+        return `tenant:${req.tenant.tenant_id}`;
+      }
+      // Use standard express-rate-limit IP handling
+      return req.ip;
     },
     message: (req) => {
       const tenant = req.tenant;
@@ -30,10 +34,20 @@ const createRateLimiter = () => {
         }
       };
     },
-    onLimitReached: (req) => {
+    handler: (req, res) => {
       logger.warn('Rate limit exceeded', {
         tenant_id: req.tenant?.tenant_id,
         ip: req.ip
+      });
+      
+      const tenant = req.tenant;
+      const limit = tenant?.quotas?.rate_limit_per_minute || 100;
+      
+      res.status(429).json({
+        error: {
+          message: `Rate limit exceeded. Maximum ${limit} requests per minute per tenant.`,
+          type: 'rate_limit_error'
+        }
       });
     },
     store: {

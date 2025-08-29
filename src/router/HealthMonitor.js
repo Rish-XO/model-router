@@ -13,10 +13,10 @@ class HealthMonitor {
       return;
     }
     
-    // Check health every 30 seconds
+    // Check health every 5 minutes (to respect rate limits)
     this.healthCheckInterval = setInterval(() => {
       this.checkAllProviders();
-    }, parseInt(process.env.HEALTH_CHECK_INTERVAL) || 30000);
+    }, parseInt(process.env.HEALTH_CHECK_INTERVAL) || 300000); // 5 minutes
     
     this.isMonitoring = true;
     logger.info('Health monitoring started');

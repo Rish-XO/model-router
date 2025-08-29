@@ -16,12 +16,12 @@ const createRateLimiter = () => {
       return 100; // Default limit
     },
     keyGenerator: (req, res) => {
-      // Rate limit per tenant, use standard key generator for IP fallback
+      // Rate limit per tenant
       if (req.tenant?.tenant_id) {
         return `tenant:${req.tenant.tenant_id}`;
       }
-      // Use standard express-rate-limit IP handling
-      return req.ip;
+      // Use standard express-rate-limit default key generator for IP handling
+      return undefined; // Let express-rate-limit handle IP automatically
     },
     message: (req) => {
       const tenant = req.tenant;

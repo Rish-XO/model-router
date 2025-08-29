@@ -39,7 +39,7 @@ class HealthMonitor {
     
     try {
       // Load all provider configurations
-      const allProviders = ConfigLoader.loadProviders();
+      const allProviders = await ConfigLoader.loadProviders();
       
       for (const [name, config] of Object.entries(allProviders)) {
         if (config.enabled !== false) { // Check if provider is not explicitly disabled

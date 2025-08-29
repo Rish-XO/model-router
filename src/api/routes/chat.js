@@ -29,10 +29,12 @@ router.post('/completions', validateChatCompletion, async (req, res) => {
   const startTime = Date.now();
   
   try {
-    logger.info('Chat completion request received', {
+    logger.info('🔄 Chat completion request received - ENTRY', {
       tenant: req.tenant?.tenant_id,
       model: req.body.model,
-      messages: req.body.messages?.length || 0
+      messages: req.body.messages?.length || 0,
+      hasRouterEngine: !!routerEngine,
+      hasTenantManager: !!tenantManager
     });
     
     if (!routerEngine || !tenantManager) {
@@ -40,8 +42,12 @@ router.post('/completions', validateChatCompletion, async (req, res) => {
     }
     
     // Check tenant quota
+    logger.info('🔍 Checking tenant quota...');
     const quotaCheck = tenantManager.checkQuota(req.tenant.tenant_id, 'daily_requests');
+    logger.info('✅ Quota check complete', { quotaCheck });
+    
     if (!quotaCheck.allowed) {
+      logger.warn('❌ Quota exceeded', { quotaCheck });
       return res.status(429).json({
         error: {
           message: `Daily quota exceeded. Limit: ${quotaCheck.limit}, Used: ${quotaCheck.used}`,
@@ -52,7 +58,12 @@ router.post('/completions', validateChatCompletion, async (req, res) => {
     }
     
     // Route request through intelligent routing system with authenticated tenant
+    logger.info('🚀 Calling RouterEngine.routeRequest...');
     const response = await routerEngine.routeRequest(req.body, req.tenant);
+    logger.info('✅ RouterEngine.routeRequest completed', { 
+      provider: response.routing_metadata?.primary_provider,
+      attempts: response.routing_metadata?.attempts?.length
+    });
     
     const duration = Date.now() - startTime;
     

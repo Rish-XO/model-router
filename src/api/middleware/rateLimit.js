@@ -49,35 +49,8 @@ const createRateLimiter = () => {
           type: 'rate_limit_error'
         }
       });
-    },
-    store: {
-      // Custom store implementation for tenant-based limits
-      incr: (key) => {
-        const now = Date.now();
-        const windowMs = 15 * 60 * 1000;
-        const current = rateLimitStore.get(key) || { count: 0, resetTime: now + windowMs };
-        
-        if (now > current.resetTime) {
-          current.count = 0;
-          current.resetTime = now + windowMs;
-        }
-        
-        current.count++;
-        rateLimitStore.set(key, current);
-        
-        // Cleanup expired entries to prevent memory leak
-        for (const [storeKey, value] of rateLimitStore.entries()) {
-          if (now > value.resetTime) {
-            rateLimitStore.delete(storeKey);
-          }
-        }
-        
-        return Promise.resolve({
-          totalHits: current.count,
-          resetTime: new Date(current.resetTime)
-        });
-      }
     }
+    // Removed custom store - using express-rate-limit's default memory store
   });
 };
 

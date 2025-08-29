@@ -11,16 +11,29 @@ class HuggingFaceProvider extends BaseProvider {
   }
   
   async makeRequest(openAIRequest) {
-    logger.info('Making request to HuggingFace', {
+    logger.info('🔄 HuggingFaceProvider.makeRequest - ENTRY', {
       model: openAIRequest.model,
-      provider: this.name
+      provider: this.name,
+      endpoint: this.endpoint,
+      hasApiKey: !!this.apiKey,
+      apiKeyLength: this.apiKey ? this.apiKey.length : 0
     });
     
     try {
       // Transform request
+      logger.info('📝 Transforming request for HuggingFace...');
       const hfRequest = this.transformRequest(openAIRequest);
+      logger.info('✅ Request transformed', { 
+        inputs: hfRequest.inputs,
+        parameters: hfRequest.parameters
+      });
       
       // Make API call
+      logger.info('🚀 Making HTTP request to HuggingFace API...', {
+        url: this.endpoint,
+        timeout: 12000
+      });
+      
       const response = await axios.post(
         this.endpoint,
         hfRequest,
@@ -33,8 +46,22 @@ class HuggingFaceProvider extends BaseProvider {
         }
       );
       
+      logger.info('✅ HTTP response received', {
+        status: response.status,
+        statusText: response.statusText,
+        hasData: !!response.data,
+        dataType: typeof response.data
+      });
+      
       // Transform response
-      return this.transformResponse(response.data, openAIRequest);
+      logger.info('📝 Transforming response...');
+      const transformedResponse = this.transformResponse(response.data, openAIRequest);
+      logger.info('✅ Response transformed successfully', {
+        choicesCount: transformedResponse.choices?.length,
+        usage: transformedResponse.usage
+      });
+      
+      return transformedResponse;
       
     } catch (error) {
       logger.error('HuggingFace request failed', {

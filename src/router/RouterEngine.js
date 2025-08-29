@@ -28,13 +28,42 @@ class RouterEngine {
   }
   
   loadProviders() {
-    const providerConfigs = ConfigLoader.loadProvidersSync();
+    logger.info('🔄 loadProviders - ENTRY');
+    
+    let providerConfigs;
+    try {
+      providerConfigs = ConfigLoader.loadProvidersSync();
+      logger.info('✅ Provider configs loaded', { 
+        configCount: Object.keys(providerConfigs).length,
+        providers: Object.keys(providerConfigs)
+      });
+    } catch (error) {
+      logger.error('❌ Failed to load provider configs', error);
+      return;
+    }
     
     for (const [name, config] of Object.entries(providerConfigs)) {
+      logger.info(`🔍 Processing provider: ${name}`, {
+        enabled: config.enabled,
+        type: config.type,
+        hasApiKeyEnv: !!config.api_key_env
+      });
+      
       if (config.enabled !== false) {
         try {
+          logger.info(`📋 Getting provider class for ${name} (type: ${config.type})`);
           const ProviderClass = this.getProviderClass(config.type || 'base');
           if (ProviderClass) {
+            logger.info(`📝 Creating provider instance: ${name}`);
+            
+            // Check if API key exists before creating provider
+            const apiKey = process.env[config.api_key_env];
+            logger.info(`🔑 API key check for ${name}:`, {
+              envVar: config.api_key_env,
+              hasKey: !!apiKey,
+              keyLength: apiKey ? apiKey.length : 0
+            });
+            
             this.providers.set(name, new ProviderClass(config));
             this.circuitBreakers.set(name, {
               state: 'closed',
@@ -44,20 +73,41 @@ class RouterEngine {
               threshold: 5,
               timeout: 60000
             });
-            logger.info(`Loaded provider: ${name}`, {
+            logger.info(`✅ Loaded provider: ${name}`, {
               type: config.type,
               endpoint: config.endpoint
             });
+          } else {
+            logger.warn(`❌ No provider class found for ${name} (type: ${config.type})`);
           }
         } catch (error) {
-          logger.error(`Failed to load provider ${name}:`, error);
+          logger.error(`❌ Failed to load provider ${name}:`, {
+            error: error.message,
+            stack: error.stack
+          });
         }
+      } else {
+        logger.info(`⏭️ Skipping disabled provider: ${name}`);
       }
     }
+    
+    logger.info('✅ loadProviders - COMPLETE', {
+      totalProvidersLoaded: this.providers.size,
+      loadedProviders: Array.from(this.providers.keys())
+    });
   }
   
   async routeRequest(request, tenant) {
+    logger.info('🔄 RouterEngine.routeRequest - ENTRY', {
+      initialized: this.isInitialized,
+      model: request.model,
+      tenant: tenant?.tenant_id,
+      providersLoaded: this.providers.size,
+      availableProviders: Array.from(this.providers.keys())
+    });
+    
     if (!this.isInitialized) {
+      logger.error('❌ RouterEngine not initialized');
       throw new Error('RouterEngine not initialized');
     }
     
@@ -68,24 +118,54 @@ class RouterEngine {
     });
     
     try {
+      logger.info('📋 Loading tenant configuration...');
       // Get tenant configuration  
       const tenantConfig = tenant || ConfigLoader.loadTenantSync('default');
+      logger.info('✅ Tenant config loaded', {
+        tenantId: tenantConfig.tenant_id,
+        enabledProviders: tenantConfig.providers?.enabled,
+        policy: tenantConfig.providers?.routing_policy
+      });
       
       // Get available providers for this tenant
       const availableProviders = tenantConfig.providers?.enabled || ['google-gemini'];
+      logger.info('📋 Checking provider availability...', {
+        requestedProviders: availableProviders,
+        loadedProviders: Array.from(this.providers.keys())
+      });
       
       // Filter to only include providers we have loaded and are available through circuit breaker
       const loadedProviders = availableProviders.filter(name => {
-        return this.providers.has(name) && this.isProviderAvailable(name);
+        const hasProvider = this.providers.has(name);
+        const isAvailable = this.isProviderAvailable(name);
+        logger.info(`🔍 Provider ${name}:`, {
+          loaded: hasProvider,
+          available: isAvailable,
+          circuitBreakerState: this.circuitBreakers.get(name)?.state || 'none'
+        });
+        return hasProvider && isAvailable;
+      });
+      
+      logger.info('✅ Provider filtering complete', {
+        availableCount: loadedProviders.length,
+        loadedProviders: loadedProviders
       });
       
       if (loadedProviders.length === 0) {
+        logger.error('❌ No providers available!', {
+          requested: availableProviders,
+          loaded: Array.from(this.providers.keys()),
+          tenantId: tenantConfig.tenant_id
+        });
         throw new Error(`No providers available for tenant ${tenantConfig.tenant_id}`);
       }
       
+      logger.info('📊 Getting health data...');
       // Get current health data
       const healthData = this.healthMonitor.getProviderHealth();
+      logger.info('✅ Health data retrieved', { healthData });
       
+      logger.info('🎯 Selecting providers with policy engine...');
       // Select providers based on policy
       const orderedProviders = this.policyEngine.selectProviders(
         loadedProviders,
@@ -100,6 +180,7 @@ class RouterEngine {
         availableProviders: loadedProviders
       });
       
+      logger.info('🚀 Starting failover execution...');
       // Try providers in order until one succeeds
       return await this.executeWithFailover(request, orderedProviders);
       
@@ -110,6 +191,11 @@ class RouterEngine {
   }
   
   async executeWithFailover(request, orderedProviders) {
+    logger.info('🔄 executeWithFailover - ENTRY', {
+      providersToTry: orderedProviders,
+      totalProviders: orderedProviders.length
+    });
+    
     let lastError = null;
     const attempts = [];
     
@@ -128,8 +214,10 @@ class RouterEngine {
         this.healthMonitor.recordAttempt(providerName);
         
         // Make request with timeout and retry logic
+        logger.info(`🚀 Making request to ${providerName} with 15s timeout...`);
         const response = await this.executeWithTimeout(provider, request, 15000);
         const duration = Date.now() - startTime;
+        logger.info(`✅ Request completed successfully in ${duration}ms`, { provider: providerName });
         
         // Record success
         this.healthMonitor.recordSuccess(providerName, duration);

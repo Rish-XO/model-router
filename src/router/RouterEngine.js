@@ -306,7 +306,8 @@ class RouterEngine {
   getProviderClass(type) {
     const providerMapping = {
       'google': require('../providers/GoogleProvider'),
-      'huggingface': require('../providers/HuggingFaceProvider')
+      'huggingface': require('../providers/HuggingFaceProvider'),
+      'groq': require('../providers/GroqProvider')
     };
     
     const ProviderClass = providerMapping[type];

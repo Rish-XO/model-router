@@ -2,7 +2,7 @@
   "tenant_id": "default",
   "api_keys": ["ak-demo123"],
   "providers": {
-    "enabled": ["google-gemini", "hugging-face"],
+    "enabled": ["groq", "google-gemini", "hugging-face"],
     "routing_policy": "balanced"
   },
   "quotas": {

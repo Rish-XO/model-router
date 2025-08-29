@@ -1,0 +1,16 @@
+{
+  "tenant_id": "default",
+  "api_keys": ["ak-demo123"],
+  "providers": {
+    "enabled": ["google-gemini"],
+    "routing_policy": "performance-first"
+  },
+  "quotas": {
+    "daily_requests": 1000,
+    "rate_limit_per_minute": 60
+  },
+  "features": {
+    "failover": true,
+    "metrics": true
+  }
+}

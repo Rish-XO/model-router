@@ -1,0 +1,14 @@
+{
+  "google-gemini": {
+    "name": "google-gemini",
+    "type": "google",
+    "enabled": true,
+    "endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent",
+    "api_key_env": "GOOGLE_API_KEY",
+    "capabilities": ["chat", "text-generation"],
+    "limits": {
+      "requests_per_minute": 15,
+      "requests_per_day": 1500
+    }
+  }
+}

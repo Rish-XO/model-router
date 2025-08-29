@@ -67,3 +67,4 @@ Thumbs.db
 .dockerignore
 
 CLAUDE.md
+settings.local.json

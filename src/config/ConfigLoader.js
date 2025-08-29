@@ -23,6 +23,17 @@ class ConfigLoader {
       throw error;
     }
   }
+  
+  static loadProvider(providerName) {
+    try {
+      const filePath = path.join(__dirname, '../../config/providers', `${providerName}.json`);
+      const data = fs.readFileSync(filePath, 'utf8');
+      return JSON.parse(data);
+    } catch (error) {
+      console.error(`Failed to load provider config: ${providerName}`, error.message);
+      throw error;
+    }
+  }
 }
 
 module.exports = ConfigLoader;

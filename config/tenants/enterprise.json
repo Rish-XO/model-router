@@ -1,0 +1,29 @@
+{
+  "tenant_id": "enterprise",
+  "name": "Enterprise Customer",
+  "api_keys": [
+    "sk-ent-12345678901234567890123456789012",
+    "sk-ent-abcdefghijklmnopqrstuvwxyz123456",
+    "sk-ent-enterprise-backup-key-2024-001"
+  ],
+  "providers": {
+    "enabled": ["google-gemini", "hugging-face"],
+    "primary": "google-gemini",
+    "fallback_order": ["google-gemini", "hugging-face"]
+  },
+  "quotas": {
+    "daily_requests": 10000,
+    "monthly_requests": 250000,
+    "rate_limit_per_minute": 500,
+    "max_tokens_per_request": 4096
+  },
+  "routing_policy": "performance_first",
+  "features": {
+    "circuit_breaker": true,
+    "retry_attempts": 3,
+    "timeout_ms": 30000,
+    "detailed_logging": true
+  },
+  "created_at": "2024-08-29T00:00:00Z",
+  "status": "active"
+}

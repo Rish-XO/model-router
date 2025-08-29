@@ -8,6 +8,7 @@ class RouterEngine {
     this.policyEngine = new PolicyEngine();
     this.healthMonitor = new HealthMonitor();
     this.providers = new Map();
+    this.circuitBreakers = new Map();
     this.isInitialized = false;
     
     this.initialize();
@@ -35,6 +36,14 @@ class RouterEngine {
           const ProviderClass = this.getProviderClass(config.type || 'base');
           if (ProviderClass) {
             this.providers.set(name, new ProviderClass(config));
+            this.circuitBreakers.set(name, {
+              state: 'closed',
+              failureCount: 0,
+              lastFailureTime: null,
+              nextAttemptTime: null,
+              threshold: 5,
+              timeout: 60000
+            });
             logger.info(`Loaded provider: ${name}`, {
               type: config.type,
               endpoint: config.endpoint
@@ -65,8 +74,10 @@ class RouterEngine {
       // Get available providers for this tenant
       const availableProviders = tenantConfig.providers?.enabled || ['google-gemini'];
       
-      // Filter to only include providers we have loaded
-      const loadedProviders = availableProviders.filter(name => this.providers.has(name));
+      // Filter to only include providers we have loaded and are available through circuit breaker
+      const loadedProviders = availableProviders.filter(name => {
+        return this.providers.has(name) && this.isProviderAvailable(name);
+      });
       
       if (loadedProviders.length === 0) {
         throw new Error(`No providers available for tenant ${tenantConfig.tenant_id}`);
@@ -122,6 +133,7 @@ class RouterEngine {
         
         // Record success
         this.healthMonitor.recordSuccess(providerName, duration);
+        this.recordCircuitBreakerSuccess(providerName);
         
         attempts.push({
           provider: providerName,
@@ -163,6 +175,7 @@ class RouterEngine {
         
         // Record failure
         this.healthMonitor.recordFailure(providerName, error);
+        this.recordCircuitBreakerFailure(providerName);
         
         // Continue to next provider
         continue;
@@ -227,10 +240,81 @@ class RouterEngine {
     return Array.from(this.providers.keys());
   }
   
+  // Circuit breaker methods
+  isProviderAvailable(providerName) {
+    const breaker = this.circuitBreakers.get(providerName);
+    if (!breaker) return true;
+    
+    const now = Date.now();
+    
+    switch (breaker.state) {
+      case 'closed':
+        return true;
+        
+      case 'open':
+        if (now >= breaker.nextAttemptTime) {
+          breaker.state = 'half-open';
+          logger.info(`Circuit breaker half-open for ${providerName}`);
+          return true;
+        }
+        return false;
+        
+      case 'half-open':
+        return true;
+        
+      default:
+        return true;
+    }
+  }
+  
+  recordCircuitBreakerSuccess(providerName) {
+    const breaker = this.circuitBreakers.get(providerName);
+    if (!breaker) return;
+    
+    breaker.failureCount = 0;
+    breaker.lastFailureTime = null;
+    
+    if (breaker.state === 'half-open') {
+      breaker.state = 'closed';
+      logger.info(`Circuit breaker closed for ${providerName}`);
+    }
+  }
+  
+  recordCircuitBreakerFailure(providerName) {
+    const breaker = this.circuitBreakers.get(providerName);
+    if (!breaker) return;
+    
+    breaker.failureCount++;
+    breaker.lastFailureTime = Date.now();
+    
+    if (breaker.failureCount >= breaker.threshold) {
+      breaker.state = 'open';
+      breaker.nextAttemptTime = Date.now() + breaker.timeout;
+      logger.warn(`Circuit breaker opened for ${providerName}`, {
+        failureCount: breaker.failureCount,
+        nextAttemptTime: new Date(breaker.nextAttemptTime).toISOString()
+      });
+    }
+  }
+  
+  getCircuitBreakerStatus() {
+    const status = {};
+    for (const [name, breaker] of this.circuitBreakers) {
+      status[name] = {
+        state: breaker.state,
+        failureCount: breaker.failureCount,
+        lastFailureTime: breaker.lastFailureTime ? new Date(breaker.lastFailureTime).toISOString() : null,
+        nextAttemptTime: breaker.nextAttemptTime ? new Date(breaker.nextAttemptTime).toISOString() : null
+      };
+    }
+    return status;
+  }
+
   // Shutdown method to clean up resources
   shutdown() {
     this.healthMonitor.stopMonitoring();
     this.providers.clear();
+    this.circuitBreakers.clear();
     this.isInitialized = false;
     logger.info('RouterEngine shut down');
   }

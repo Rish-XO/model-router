@@ -2,15 +2,27 @@ const express = require('express');
 const router = express.Router();
 const { logger } = require('../middleware/logging');
 const { validateChatCompletion } = require('../middleware/validation');
+const authMiddleware = require('../middleware/auth');
+const { createRateLimiter } = require('../middleware/rateLimit');
 const RouterEngine = require('../../router/RouterEngine');
+const TenantManager = require('../../config/TenantManager');
 
-// Create singleton RouterEngine instance
+// Create singleton instances
 let routerEngine = null;
+let tenantManager = null;
+
 try {
   routerEngine = new RouterEngine();
+  tenantManager = new TenantManager();
 } catch (error) {
-  logger.error('Failed to initialize RouterEngine', error);
+  logger.error('Failed to initialize RouterEngine or TenantManager', error);
 }
+
+const rateLimiter = createRateLimiter();
+
+// Apply middleware to all routes
+router.use(authMiddleware.authenticateAPIKey);
+router.use(rateLimiter);
 
 // POST /v1/chat/completions
 router.post('/completions', validateChatCompletion, async (req, res) => {
@@ -18,38 +30,53 @@ router.post('/completions', validateChatCompletion, async (req, res) => {
   
   try {
     logger.info('Chat completion request received', {
+      tenant: req.tenant?.tenant_id,
       model: req.body.model,
       messages: req.body.messages?.length || 0
     });
     
-    if (!routerEngine) {
-      throw new Error('RouterEngine not available');
+    if (!routerEngine || !tenantManager) {
+      throw new Error('RouterEngine or TenantManager not available');
     }
     
-    // For now, use default tenant (in Phase 4 we'll add authentication)
-    const defaultTenant = {
-      tenant_id: 'default',
-      providers: {
-        enabled: ['google-gemini'],
-        routing_policy: 'balanced'
-      }
-    };
+    // Check tenant quota
+    const quotaCheck = tenantManager.checkQuota(req.tenant.tenant_id, 'daily_requests');
+    if (!quotaCheck.allowed) {
+      return res.status(429).json({
+        error: {
+          message: `Daily quota exceeded. Limit: ${quotaCheck.limit}, Used: ${quotaCheck.used}`,
+          type: 'quota_exceeded',
+          quota_status: quotaCheck
+        }
+      });
+    }
     
-    // Route request through intelligent routing system
-    const response = await routerEngine.routeRequest(req.body, defaultTenant);
+    // Route request through intelligent routing system with authenticated tenant
+    const response = await routerEngine.routeRequest(req.body, req.tenant);
     
     const duration = Date.now() - startTime;
+    
+    // Track usage
+    tenantManager.trackUsage(req.tenant.tenant_id, {
+      total_tokens: response.usage?.total_tokens || 0,
+      duration,
+      model: req.body.model,
+      estimated_cost: (response.usage?.total_tokens || 0) * 0.002 // $0.002 per token
+    });
     
     // Enhance response metadata
     if (response.routing_metadata) {
       response.routing_metadata.api_processing_time = duration;
       response.routing_metadata.timestamp = new Date().toISOString();
+      response.routing_metadata.tenant_id = req.tenant.tenant_id;
     }
     
     logger.info('Chat completion success', {
+      tenant: req.tenant.tenant_id,
       duration,
       provider: response.routing_metadata?.primary_provider,
-      attempts: response.routing_metadata?.attempts?.length || 1
+      attempts: response.routing_metadata?.attempts?.length || 1,
+      tokens: response.usage?.total_tokens
     });
     
     res.json(response);

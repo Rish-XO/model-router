@@ -15,6 +15,15 @@ app.use(loggingMiddleware);
 const chatRoutes = require('./api/routes/chat');
 app.use('/v1/chat', chatRoutes);
 
+// API routes for compatibility
+app.get('/api/health', (req, res) => {
+  res.redirect('/health');
+});
+
+app.get('/api/health/detailed', (req, res) => {
+  res.redirect('/health/detailed');
+});
+
 // Basic health endpoint
 app.get('/health', (req, res) => {
   res.json({

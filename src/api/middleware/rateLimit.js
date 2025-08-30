@@ -6,7 +6,7 @@ const rateLimitStore = new Map();
 
 const createRateLimiter = () => {
   return rateLimit({
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 60 * 1000, // 1 minute
     max: (req) => {
       // Get tenant-specific limits
       const tenant = req.tenant;

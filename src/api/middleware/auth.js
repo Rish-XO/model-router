@@ -1,4 +1,3 @@
-const ConfigLoader = require('../../config/ConfigLoader');
 const TenantManager = require('../../config/TenantManager');
 const { logger } = require('./logging');
 

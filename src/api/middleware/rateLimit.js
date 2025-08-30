@@ -1,9 +1,6 @@
 const rateLimit = require('express-rate-limit');
 const { logger } = require('./logging');
 
-// In-memory store for demo (use Redis in production)
-const rateLimitStore = new Map();
-
 const createRateLimiter = () => {
   return rateLimit({
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 60 * 1000, // 1 minute

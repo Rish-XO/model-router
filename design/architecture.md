@@ -68,7 +68,7 @@ The Model Router is a production-grade API gateway designed to intelligently rou
 │  │   Routes    │  │     Middleware      │  │
 │  │             │  │                     │  │
 │  │ • /chat     │  │ • Authentication    │  │
-│  │ • /health   │  │ • Rate Limiting     │  │
+│  │             │  │ • Rate Limiting     │  │
 │  │ • /metrics  │  │ • Request Validation│  │
 │  └─────────────┘  │ • Error Handling    │  │
 │                   │ • CORS              │  │

@@ -9,7 +9,7 @@ class GroqProvider extends BaseProvider {
       throw new Error('GROQ_API_KEY environment variable is required');
     }
   }
-  
+
   async makeRequest(openAIRequest) {
     logger.info('🚀 GroqProvider.makeRequest - ENTRY', {
       model: openAIRequest.model,
@@ -17,7 +17,7 @@ class GroqProvider extends BaseProvider {
       endpoint: this.endpoint,
       hasApiKey: !!this.apiKey
     });
-    
+
     try {
       // Groq uses OpenAI-compatible format, so minimal transformation needed
       const groqRequest = {
@@ -27,12 +27,12 @@ class GroqProvider extends BaseProvider {
         temperature: openAIRequest.temperature || 0.7,
         stream: false
       };
-      
+
       logger.info('🚀 Making request to Groq API...', {
         model: groqRequest.model,
         messagesCount: groqRequest.messages.length
       });
-      
+
       const response = await axios.post(
         this.endpoint,
         groqRequest,
@@ -44,16 +44,16 @@ class GroqProvider extends BaseProvider {
           timeout: 10000 // 10 second timeout
         }
       );
-      
+
       logger.info('✅ Groq response received', {
         status: response.status,
         hasData: !!response.data,
         usage: response.data.usage
       });
-      
+
       // Groq returns OpenAI-compatible format, so return directly
       return response.data;
-      
+
     } catch (error) {
       logger.error('❌ Groq request failed', {
         error: error.message,
@@ -61,7 +61,7 @@ class GroqProvider extends BaseProvider {
         statusText: error.response?.statusText,
         provider: this.name
       });
-      
+
       // Handle specific Groq errors
       if (error.response?.status === 401) {
         throw new Error('Groq API key is invalid or expired');
@@ -69,11 +69,11 @@ class GroqProvider extends BaseProvider {
       if (error.response?.status === 429) {
         throw new Error('Groq rate limit exceeded');
       }
-      
+
       throw error;
     }
   }
-  
+
   async healthCheck() {
     try {
       const testRequest = {
@@ -81,7 +81,7 @@ class GroqProvider extends BaseProvider {
         messages: [{ role: 'user', content: 'Hello' }],
         max_tokens: 10
       };
-      
+
       const start = Date.now();
       const response = await axios.post(
         this.endpoint,
@@ -94,13 +94,13 @@ class GroqProvider extends BaseProvider {
           timeout: 5000
         }
       );
-      
+
       const latency = Date.now() - start;
       return { status: 'healthy', latency };
-      
+
     } catch (error) {
-      return { 
-        status: 'unhealthy', 
+      return {
+        status: 'unhealthy',
         error: error.message,
         latency: 999999
       };

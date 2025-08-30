@@ -27,7 +27,7 @@ router.use(rateLimiter);
 // POST /v1/chat/completions
 router.post('/completions', validateChatCompletion, async (req, res) => {
   const startTime = Date.now();
-  
+
   try {
     logger.info('🔄 Chat completion request received - ENTRY', {
       tenant: req.tenant?.tenant_id,
@@ -36,16 +36,16 @@ router.post('/completions', validateChatCompletion, async (req, res) => {
       hasRouterEngine: !!routerEngine,
       hasTenantManager: !!tenantManager
     });
-    
+
     if (!routerEngine || !tenantManager) {
       throw new Error('RouterEngine or TenantManager not available');
     }
-    
+
     // Check tenant quota
     logger.info('🔍 Checking tenant quota...');
     const quotaCheck = tenantManager.checkQuota(req.tenant.tenant_id, 'daily_requests');
     logger.info('✅ Quota check complete', { quotaCheck });
-    
+
     if (!quotaCheck.allowed) {
       logger.warn('❌ Quota exceeded', { quotaCheck });
       return res.status(429).json({
@@ -56,17 +56,17 @@ router.post('/completions', validateChatCompletion, async (req, res) => {
         }
       });
     }
-    
+
     // Route request through intelligent routing system with authenticated tenant
     logger.info('🚀 Calling RouterEngine.routeRequest...');
     const response = await routerEngine.routeRequest(req.body, req.tenant);
-    logger.info('✅ RouterEngine.routeRequest completed', { 
+    logger.info('✅ RouterEngine.routeRequest completed', {
       provider: response.routing_metadata?.primary_provider,
       attempts: response.routing_metadata?.attempts?.length
     });
-    
+
     const duration = Date.now() - startTime;
-    
+
     // Track usage
     tenantManager.trackUsage(req.tenant.tenant_id, {
       total_tokens: response.usage?.total_tokens || 0,
@@ -74,14 +74,14 @@ router.post('/completions', validateChatCompletion, async (req, res) => {
       model: req.body.model,
       estimated_cost: (response.usage?.total_tokens || 0) * 0.002 // $0.002 per token
     });
-    
+
     // Enhance response metadata
     if (response.routing_metadata) {
       response.routing_metadata.api_processing_time = duration;
       response.routing_metadata.timestamp = new Date().toISOString();
       response.routing_metadata.tenant_id = req.tenant.tenant_id;
     }
-    
+
     logger.info('Chat completion success', {
       tenant: req.tenant.tenant_id,
       duration,
@@ -89,23 +89,23 @@ router.post('/completions', validateChatCompletion, async (req, res) => {
       attempts: response.routing_metadata?.attempts?.length || 1,
       tokens: response.usage?.total_tokens
     });
-    
+
     res.json(response);
-    
+
   } catch (error) {
     const duration = Date.now() - startTime;
-    
+
     logger.error('Chat completion error', {
       error: error.message,
       duration,
       attempts: error.attempts?.length,
       providers_attempted: error.providersAttempted
     });
-    
+
     // Determine appropriate error code
     let statusCode = 500;
     let errorType = 'api_error';
-    
+
     if (error.message.includes('No providers available')) {
       statusCode = 503;
       errorType = 'service_unavailable';
@@ -113,7 +113,7 @@ router.post('/completions', validateChatCompletion, async (req, res) => {
       statusCode = 502;
       errorType = 'bad_gateway';
     }
-    
+
     res.status(statusCode).json({
       error: {
         message: error.message,

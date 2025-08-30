@@ -9,17 +9,17 @@ class GoogleProvider extends BaseProvider {
       throw new Error('GOOGLE_API_KEY environment variable is required');
     }
   }
-  
+
   async makeRequest(openAIRequest) {
     logger.info('Making request to Google Gemini', {
       model: openAIRequest.model,
       provider: this.name
     });
-    
+
     try {
       // Transform request
       const googleRequest = this.transformRequest(openAIRequest);
-      
+
       // Make API call
       const response = await axios.post(
         `${this.endpoint}?key=${this.apiKey}`,
@@ -31,10 +31,10 @@ class GoogleProvider extends BaseProvider {
           timeout: 10000 // 10 second timeout
         }
       );
-      
+
       // Transform response
       return this.transformResponse(response.data, openAIRequest);
-      
+
     } catch (error) {
       logger.error('Google Gemini request failed', {
         error: error.message,
@@ -44,22 +44,22 @@ class GoogleProvider extends BaseProvider {
       throw error;
     }
   }
-  
+
   transformRequest(openAIRequest) {
     // Convert OpenAI format to Google Gemini format
     const userMessage = openAIRequest.messages.find(m => m.role === 'user');
-    
+
     return {
       contents: [{
         parts: [{ text: userMessage.content }]
       }]
     };
   }
-  
+
   transformResponse(googleResponse, originalRequest) {
     // Convert Google response to OpenAI format
     const content = googleResponse.candidates?.[0]?.content?.parts?.[0]?.text || 'No response';
-    
+
     return {
       id: 'chatcmpl-' + Date.now(),
       object: 'chat.completion',
@@ -79,7 +79,7 @@ class GoogleProvider extends BaseProvider {
       }
     };
   }
-  
+
   estimateTokens(text) {
     // Rough token estimation (4 chars H 1 token)
     return Math.ceil(text.length / 4);

@@ -39,7 +39,7 @@ app.get('/health', (req, res) => {
 // Enhanced health endpoint with routing status
 app.get('/health/detailed', async (req, res) => {
   const startTime = Date.now();
-  
+
   try {
     const health = {
       status: 'healthy',
@@ -52,31 +52,31 @@ app.get('/health/detailed', async (req, res) => {
         total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024)
       }
     };
-    
+
     // Try to get router engine status
     try {
       const RouterEngine = require('./router/RouterEngine');
       const routerEngine = new RouterEngine();
-      
+
       const providerHealth = routerEngine.getHealthStatus();
       const availableProviders = routerEngine.getAvailableProviders();
-      
+
       health.routing = {
         status: 'operational',
         providers_loaded: availableProviders.length,
         available_providers: availableProviders,
         provider_health: providerHealth
       };
-      
+
       // Check if any providers are unhealthy
       const unhealthyProviders = Object.entries(providerHealth)
         .filter(([name, status]) => status.status === 'unhealthy');
-      
+
       if (unhealthyProviders.length > 0) {
         health.routing.status = 'degraded';
         health.routing.unhealthy_providers = unhealthyProviders.map(([name]) => name);
       }
-      
+
     } catch (error) {
       health.routing = {
         status: 'error',
@@ -84,12 +84,12 @@ app.get('/health/detailed', async (req, res) => {
       };
       health.status = 'degraded';
     }
-    
+
     health.response_time_ms = Date.now() - startTime;
-    
+
     const statusCode = health.status === 'healthy' ? 200 : 503;
     res.status(statusCode).json(health);
-    
+
   } catch (error) {
     res.status(503).json({
       status: 'unhealthy',

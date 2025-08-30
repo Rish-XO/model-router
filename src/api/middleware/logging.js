@@ -15,7 +15,7 @@ const logger = winston.createLogger({
 // Request logging middleware
 const loggingMiddleware = (req, res, next) => {
   const start = Date.now();
-  
+
   res.on('finish', () => {
     const duration = Date.now() - start;
     logger.info('HTTP Request', {
@@ -26,7 +26,7 @@ const loggingMiddleware = (req, res, next) => {
       ip: req.ip
     });
   });
-  
+
   next();
 };
 

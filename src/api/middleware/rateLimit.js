@@ -26,7 +26,7 @@ const createRateLimiter = () => {
     message: (req) => {
       const tenant = req.tenant;
       const limit = tenant?.quotas?.rate_limit_per_minute || 100;
-      
+
       return {
         error: {
           message: `Rate limit exceeded. Maximum ${limit} requests per minute per tenant.`,
@@ -39,10 +39,10 @@ const createRateLimiter = () => {
         tenant_id: req.tenant?.tenant_id,
         ip: req.ip
       });
-      
+
       const tenant = req.tenant;
       const limit = tenant?.quotas?.rate_limit_per_minute || 100;
-      
+
       res.status(429).json({
         error: {
           message: `Rate limit exceeded. Maximum ${limit} requests per minute per tenant.`,

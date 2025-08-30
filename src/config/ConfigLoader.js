@@ -13,7 +13,7 @@ class ConfigLoader {
       throw error;
     }
   }
-  
+
   static async loadProviders() {
     try {
       const filePath = path.join(__dirname, '../../config/providers.json');
@@ -24,7 +24,7 @@ class ConfigLoader {
       throw error;
     }
   }
-  
+
   // Sync versions for backward compatibility (cached)
   static loadTenantSync(tenantId = 'default') {
     const syncFs = require('fs');
@@ -37,7 +37,7 @@ class ConfigLoader {
       throw error;
     }
   }
-  
+
   static loadProvidersSync() {
     const syncFs = require('fs');
     try {

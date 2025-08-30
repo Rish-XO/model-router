@@ -12,20 +12,20 @@ const server = app.listen(PORT, () => {
 // Graceful shutdown handlers
 const shutdown = (signal) => {
   logger.info(`Received ${signal}. Starting graceful shutdown...`);
-  
+
   server.close((err) => {
     if (err) {
       logger.error('Error during server shutdown:', err);
       process.exit(1);
     }
-    
+
     logger.info('Server closed successfully');
-    
+
     // Close any other resources here (database connections, etc.)
     // For now, we'll just exit cleanly
     process.exit(0);
   });
-  
+
   // Force shutdown after 30 seconds
   setTimeout(() => {
     logger.error('Forced shutdown after timeout');

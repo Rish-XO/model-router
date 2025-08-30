@@ -16,7 +16,7 @@ const chatCompletionSchema = joi.object({
 
 const validateChatCompletion = (req, res, next) => {
   const { error, value } = chatCompletionSchema.validate(req.body);
-  
+
   if (error) {
     return res.status(400).json({
       error: {
@@ -25,7 +25,7 @@ const validateChatCompletion = (req, res, next) => {
       }
     });
   }
-  
+
   req.body = value; // Use validated data
   next();
 };
